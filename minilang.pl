@@ -25,26 +25,30 @@ update_state(Var, Val, [(X, V)|T], [(X, V)|NouvelleT]) :-
 % run(EtatPrecedent, Programme, EtatFinal)
 run(Etat, [], Etat). % Cas de base : si le programme est vide, l'état final est l'état actuel
 
-run(EtatPrecedent, [Var = Expr|T], EtatFinal) :-
+run(EtatPrecedent, Var = Expr, EtatFinal) :-
     eval(Expr, EtatPrecedent, Valeur),
-    update_state(Var, Valeur, EtatPrecedent, NouvelEtat), % Met à jour l'état avec la nouvelle valeur de la variable
-    run(NouvelEtat, T, EtatFinal).
+    update_state(Var, Valeur, EtatPrecedent, NouvelEtat),
+    EtatFinal = NouvelEtat.
 
-run(EtatPrecedent, [if(Cond, Alors)|T], EtatFinal) :-
+run(EtatPrecedent, (Instruction; Suite), EtatFinal) :-
+    run(EtatPrecedent, Instruction, NouvelEtat),
+    run(NouvelEtat, Suite, EtatFinal).
+
+run(EtatPrecedent, if(Cond, Alors)|T, EtatFinal) :-
     (   eval(Cond, EtatPrecedent, true)
     ->  run(EtatPrecedent, Alors, NouvelEtat)
     ;   NouvelEtat = EtatPrecedent
     ),
     run(NouvelEtat, T, EtatFinal).
 
-run(EtatPrecedent, [if(Cond, Alors, Sinon)|T], EtatFinal) :-
+run(EtatPrecedent, if(Cond, Alors, Sinon)|T, EtatFinal) :-
     (   eval(Cond, EtatPrecedent, true)
     ->  run(EtatPrecedent, Alors, NouvelEtat)
     ;   run(EtatPrecedent, Sinon, NouvelEtat)
     ),
     run(NouvelEtat, T, EtatFinal).
 
-run(EtatPrecedent, [while(Cond, Faire)|T], EtatFinal) :-
+run(EtatPrecedent, while(Cond, Faire)|T, EtatFinal) :-
     (   eval(Cond, EtatPrecedent, true)
     ->  run(EtatPrecedent, Faire, NouvelEtat1), % Exécute le bloc
         run(NouvelEtat1, [while(Cond, Faire)], NouvelEtat) % Exécute la boucle while récursivement
@@ -52,11 +56,12 @@ run(EtatPrecedent, [while(Cond, Faire)|T], EtatFinal) :-
     ),
     run(NouvelEtat, T, EtatFinal).
 
-    run_from_file ( InitialState , FileName , FinalState ) :-
-        open ( FileName , read , Stream ),
-        read_term (Stream , Prog , []) ,
-        close ( Stream ),
-        run ( InitialState , Prog , FinalState ).
+
+    run_from_file( EtatPrecedent , FileName , EtatFinal ) :-
+        open( FileName , read , Stream ),
+        read_term(Stream , Prog , []) ,
+        close( Stream ),
+        run( EtatPrecedent , Prog , EtatFinal ).
 
 run(InitialState, print(Expr), FinalState) :-
     (
