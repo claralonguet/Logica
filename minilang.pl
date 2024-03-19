@@ -57,3 +57,10 @@ run(EtatPrecedent, [while(Cond, Faire)|T], EtatFinal) :-
         read_term (Stream , Prog , []) ,
         close ( Stream ),
         run ( InitialState , Prog , FinalState ).
+
+run(InitialState, print(Expr), FinalState) :-
+    (
+        eval(Expr,InitialState,Valeur)
+    ->  print(Valeur)
+    ),
+    run(InitialState, [], FinalState).
